@@ -16,6 +16,8 @@ The program is structured into three main files:
     - genetics.c: contains the main functions corresponding to the Genetic
     Algorithm implementation.
     - main.c: includes the main function, it basically runs the code
+    - The functions corresponding to the files RKF78.c and its header are
+    developed and provided by Lluis Alseda.
 
 ### Instructions
 The src folder contains a Makefile to compile the code. The main object file
