@@ -38,7 +38,7 @@ double Curative_Fitness(unsigned char *Cij) {
 
     if ( !TestIfConstraints2and3AreVerifiedCurative(Cij) ) return MAXDOUBLE;
 
-    for ( i = 0; i < npar; i++ ) { double tfin = t_i[i+1]; // Implementing treatment i
+    for ( i = 0; i < npar; i++ ) { double tfin = t_i[i+1]; 
         GompertzParams.drift_i = 0.0;
         for ( j = 0; j < d_par; j++) GompertzParams.drift_i += k_j[j] * *(Cij++);
 
@@ -61,6 +61,61 @@ double Curative_Fitness(unsigned char *Cij) {
     return MAXDOUBLE;
 }
 
+void writeCurativeSolution(unsigned char *Cij) {
+    register unsigned char i, j;
+    ODE_Parameters GompertzParams;
+    double N = NZero_par, t = t_i[0];
+    double hmin = 1.e-8, hmax = 1.0, h = 1.e-3, tol = 1.e-8;
+    unsigned char curativecounter = 0U, npar = n_par - 1;
+    double integral = 0.0, lastt = t, lastN = N;
+    
+    /* Opening the solutions file */
+    FILE *fp;
+    if ( (fp = fopen("curative_solution.sol", "w")) == NULL) {
+        ExitError("when opening file to write", 1);
+    }
+
+    /* The solution is curative */
+    fprintf(fp, "# t N\n %lf %lf\n", t, N);
+    for ( i = 0; i < npar; i++ ) { double tfin = t_i[i+1]; 
+        GompertzParams.drift_i = 0.0;
+        for ( j = 0; j < d_par; j++) GompertzParams.drift_i += k_j[j] * *(Cij++);
+
+        while (t+h < tfin) {
+            RKF78(&t, &N, &h, hmin, hmax, tol, &GompertzParams, Gompertz);
+            fprintf(fp, " %lf %lf\n", t, N);
+            integral += (lastN + N) * (t - lastt);
+            lastt = t; lastN = N;
+        }
+
+        do { h = tfin - t;
+            RKF78(&t, &N, &h, hmin, hmax, tol, &GompertzParams, Gompertz);
+            fprintf(fp, " %lf %lf\n", t, N);
+            integral += (lastN + N) * (t - lastt);
+            lastt = t; lastN = N;
+        } while (t < tfin);
+        if (N < 1000) { 
+            curativecounter++; 
+            if (curativecounter > 2) {
+                /* Setting the rest of Cij to zero nd printing the*/
+                /* concentrations */
+                for (int k = (i + 1) * d_par; k < npar*d_par; k++) Cij[k] = 0;
+                fprintf(fp, "# integral : %lf\n", integral/2.0);
+                break;
+             }
+        }
+        else curativecounter = 0U;
+    }
+    /* printing the concentrations Cij i, dose, j drug */
+    for (i = 0; i < npar; i++) {
+        fprintf(fp, "# Dose %d : ", i+1);
+        for ( j = 0; j < d_par; j++) {
+            fprintf(fp, " %2d ", Cij[i*d_par +j]);
+        }
+        fprintf(fp, "\n");
+    }       
+}
+
 double Paliative_Fitness(unsigned char *Cij) {
     register unsigned char i, j;
     ODE_Parameters GompertzParams;
@@ -70,18 +125,18 @@ double Paliative_Fitness(unsigned char *Cij) {
 
     if ( !TestIfConstraints2and3AreVerifiedPaliative(Cij) ) return MAXDOUBLE;
             
-    for ( i = 0; i < npar; i++ ) { double tfin = t_i[i+1]; // Implementing treatment i
+    for ( i = 0; i < npar; i++ ) { double tfin = t_i[i+1]; 
         GompertzParams.drift_i = 0.0;
         for ( j = 0; j < d_par; j++) GompertzParams.drift_i += k_j[j] * *(Cij++);
 
         while (t+h < tfin) {
             RKF78(&t, &N, &h, hmin, hmax, tol, &GompertzParams, Gompertz);
-            if (N > NMax_par) return 1./t;
+            if (N > NMax_par) return MAXDOUBLE;
         }
 
         do { h = tfin - t;
             RKF78(&t, &N, &h, hmin, hmax, tol, &GompertzParams, Gompertz);
-            if (N > NMax_par) return 1./t;
+            if (N > NMax_par) return MAXDOUBLE;
         } while (t < tfin);
     }
     /* After treatment is finished, no dose or treatment neither at time */ 
@@ -94,6 +149,52 @@ double Paliative_Fitness(unsigned char *Cij) {
     return 1./t;
 }
 
+void writePaliativeSolution(unsigned char* Cij) {
+    register unsigned char i, j;
+    ODE_Parameters GompertzParams;
+    double N = NZero_par, t = t_i[0];
+    double hmin = 1.e-8, hmax = 1.0, h = 1.e-3, tol = 1.e-8;
+    unsigned char npar = n_par - 1;
+
+    /* opening the paliative solution file */
+    FILE* fp;
+    if ( (fp = fopen("paliative_solution.sol", "w")) == NULL) {
+        ExitError("when opening file to write", 1);
+    }
+
+    /* The solution is paliative */ 
+    fprintf(fp, "# t N\n %lf %lf\n", t, N);
+    for ( i = 0; i < npar; i++ ) { double tfin = t_i[i+1]; 
+        GompertzParams.drift_i = 0.0;
+        for ( j = 0; j < d_par; j++) GompertzParams.drift_i += k_j[j] * *(Cij++);
+
+        while (t+h < tfin) {
+            RKF78(&t, &N, &h, hmin, hmax, tol, &GompertzParams, Gompertz);
+            fprintf(fp, " %lf %lf\n", t, N);
+        }
+
+        do { h = tfin - t;
+            RKF78(&t, &N, &h, hmin, hmax, tol, &GompertzParams, Gompertz);
+            fprintf(fp, " %lf %lf\n", t, N);
+        } while (t < tfin);
+    }
+    /* After treatment is finished, no dose or treatment neither at time */ 
+    /* tau_n nor later on */
+    h = 1.e-3;
+    GompertzParams.drift_i = 0.0;
+    do {
+        RKF78(&t, &N, &h, hmin, hmax, tol, &GompertzParams, Gompertz);
+        fprintf(fp, " %lf %lf\n", t, N);
+    } while (N < NMax_par);
+    /* printing the doses and concentrations */
+    for (i = 0; i < npar; i++) {
+        fprintf(fp, "# Dose %d : ", i+1);
+        for ( j = 0; j < d_par; j++) {
+            fprintf(fp, " %2d ", Cij[i*d_par +j]);
+        }
+        fprintf(fp, "\n");
+    }       
+}
 
 unsigned char TestIfConstraints2and3AreVerifiedCurative(unsigned char *Cij) {
     register unsigned char i, j, k;

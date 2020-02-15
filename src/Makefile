@@ -3,6 +3,13 @@ OPT=-g -Wall
 
 # All
 all: main
+superall: main solutions
+
+solutions: main
+	./main 40=popsize 0.1=probmutation 2=typesol
+	@echo 1>&2 "*** Application of the Genetic Algorithm"
+	@echo 1>&2 "*** Try in gnuplot:"
+	@echo 1>&2 "*** plot 'curative_sol.sol' u 1:2 w l"
 
 main: main.c genetics.o utils.o RKF78.o
 	gcc -o main $(OPT) main.c genetics.o utils.o RKF78.o -lm
@@ -19,4 +26,4 @@ RKF78.o: RKF78.c RKF78.h
 clean: 
 	rm -f *.o
 realclean: clean
-	rm -f main 
+	rm -f main *.sol

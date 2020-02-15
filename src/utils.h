@@ -13,11 +13,13 @@
 #define MAXDOUBLE DBL_MAX
 
 typedef struct { double drift_i; } ODE_Parameters;
-typedef double (*fitness)(unsigned char *Cij);
+typedef double (*fitness_function)(unsigned char *Cij);
+typedef void (*write_function)(unsigned char *Cij);
 void Gompertz(double t, double N, double *der, void *Params);
 double Curative_Fitness(unsigned char *Cij);
 double Paliative_Fitness(unsigned char *Cij);
 unsigned char TestIfConstraints2and3AreVerifiedCurative(unsigned char *Cij);
 unsigned char TestIfConstraints2and3AreVerifiedPaliative(unsigned char *Cij);
-
+void writeCurativeSolution(unsigned char *Cij);
+void writePaliativeSolution(unsigned char *Cij);
 #endif

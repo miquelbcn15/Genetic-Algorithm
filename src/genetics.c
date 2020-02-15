@@ -132,7 +132,6 @@ void findFittest(individual* fittest, individual* population, int popsize) {
 }
 
 int geneticAlgorithm(int popsize, double probmutation, fitness_function f, write_function writesol) {
-    fprintf(stdout, " # GA() : starting Genetic Algorithm ... \n");
     if ( popsize < 2 
             || !probmutation
             || (popsize % 2)!=0
